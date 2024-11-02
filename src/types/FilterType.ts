@@ -1,0 +1,1 @@
+export type FilterType = "main" | "people" | "planets" | "starships" | "films";
