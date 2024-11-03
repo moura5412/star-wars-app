@@ -35,8 +35,10 @@ h1 {
   background-color: #ffe81f;
   border-color: #ffe81f;
   color: #000;
+  padding: 10px 20px;
+  font-size: 16px;
 }
-  
+
 @media (max-width: 768px) {
   h1 {
     font-size: 1.8em;
@@ -49,8 +51,13 @@ h1 {
   .ant-pagination {
     padding: 6px 10px;
   }
-}
   
+  .ant-btn-primary {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+}
+
 @media (max-width: 480px) {
   h1 {
     font-size: 1.5em;
@@ -63,12 +70,35 @@ h1 {
   
   .ant-pagination {
     padding: 4px 8px;
+    justify-content: center;
   }
-  
-  .ant-pagination-item {
+
+  .ant-pagination .ant-pagination-item {
     font-size: 12px;
     min-width: 28px;
     height: 28px;
   }
+  .ant-pagination .ant-pagination-item a {
+    height: 26px;
+  }
+
+  .ant-table-tbody .ant-table-row .ant-table-cell {
+    font-size: 11px;
+    padding: 8px;
+  }
+
+  .ant-table-thead tr th {
+    font-size: 11px;
+    padding: 8px;
+  }
+
+  .ant-table-tbody > tr > td > .ant-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .ant-pagination {
+    display: flex;
+    justify-content: center;
+  }
 }
-  

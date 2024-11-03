@@ -2,6 +2,7 @@ import axios from "axios";
 import { FilterType } from "../types/FilterType";
 
 const BASE_URL = "https://swapi.dev/api";
+const cache: Record<string, string | null> = {};
 
 export const fetchAllData = async (endpoint: string) => {
   try {
@@ -22,9 +23,13 @@ export const fetchAllData = async (endpoint: string) => {
 };
 
 const fetchNameFromUrl = async (url: string) => {
+  if (cache[url]) return cache[url];
+  
   try {
     const response = await axios.get(url);
-    return response.data.name || response.data.title;
+    const name = response.data.name || response.data.title;
+    cache[url] = name || null;
+    return name;
   } catch (error) {
     console.error(`Erro ao buscar dados da URL ${url}:`, error);
     return null;
@@ -34,88 +39,50 @@ const fetchNameFromUrl = async (url: string) => {
 const resolveReferences = async (item: any) => {
   const resolvedItem = { ...item };
 
-  if (item.homeworld) {
-    resolvedItem.homeworld = await fetchNameFromUrl(item.homeworld);
-  }
+  const referenceFields = ["homeworld", "species", "vehicles", "starships", "characters", "films", "pilots", "planets"];
+  
+  await Promise.all(referenceFields.map(async field => {
+    if (item[field]) {
+      const urls = Array.isArray(item[field]) ? item[field] : [item[field]];
+      const resolvedNames = await Promise.all(urls.map(fetchNameFromUrl));
+      resolvedItem[field] = Array.isArray(item[field]) ? resolvedNames : resolvedNames[0];
+    }
+  }));
 
-  if (item.species) {
-    resolvedItem.species = await Promise.all(item.species.map(fetchNameFromUrl));
-  }
-
-  if (item.vehicles) {
-    resolvedItem.vehicles = await Promise.all(item.vehicles.map(fetchNameFromUrl));
-  }
-
-  if (item.starships) {
-    resolvedItem.starships = await Promise.all(item.starships.map(fetchNameFromUrl));
-  }
-
-  if (item.characters) {
-    resolvedItem.characters = await Promise.all(item.characters.map(fetchNameFromUrl));
-  }
-
-  if (item.films) {
-    resolvedItem.films = await Promise.all(item.films.map(fetchNameFromUrl));
-  }
-
-  if (item.pilots) {
-    resolvedItem.pilots = await Promise.all(item.pilots.map(fetchNameFromUrl));
-  }
-
-  if (item.planets) {
-    resolvedItem.planets = await Promise.all(item.planets.map(fetchNameFromUrl));
-  }
-
-  return resolvedItem; 
+  return resolvedItem;
 };
 
 export const fetchAllResources = async (filter?: FilterType) => {
   let allData: any[] = [];
 
+  const processAndResolveData = async (endpoint: string, typeLabel: string) => {
+    const data = await fetchAllData(endpoint);
+    const resolvedData = await Promise.all(data.map(resolveReferences));
+    return resolvedData.map(item => ({ ...item, type: typeLabel }));
+  };
+
   switch(filter) {
     case 'people':
-      const peopleFilter = await fetchAllData("people");
-      const resolvedPeopleFilter = await Promise.all(peopleFilter.map(item => resolveReferences(item)));
-      allData = resolvedPeopleFilter.map(item => ({ ...item, type: "Pessoa" }));
+      allData = await processAndResolveData("people", "Pessoa");
       break;
-
     case 'planets':
-      const planetsFilter = await fetchAllData("planets");
-      const resolvedPlanetsFilter = await Promise.all(planetsFilter.map(item => resolveReferences(item)));
-      allData = resolvedPlanetsFilter.map(item => ({ ...item, type: "Planeta" }));
+      allData = await processAndResolveData("planets", "Planeta");
       break;
-
     case 'starships':
-      const starshipsFilter = await fetchAllData("starships");
-      const resolvedStarshipsFilter = await Promise.all(starshipsFilter.map(item => resolveReferences(item)));
-      allData = resolvedStarshipsFilter.map(item => ({ ...item, type: "Nave" }));
+      allData = await processAndResolveData("starships", "Nave");
       break;
-
     case 'films':
-      const filmsFilter = await fetchAllData("films");
-      const resolvedFilmsFilter = await Promise.all(filmsFilter.map(item => resolveReferences(item)));
-      allData = resolvedFilmsFilter.map(item => ({ ...item, type: "Filme" }));
+      allData = await processAndResolveData("films", "Filme");
       break;
-
     default:
       const [people, planets, starships, films] = await Promise.all([
-        fetchAllData("people"),
-        fetchAllData("planets"),
-        fetchAllData("starships"),
-        fetchAllData("films"),
+        processAndResolveData("people", "Pessoa"),
+        processAndResolveData("planets", "Planeta"),
+        processAndResolveData("starships", "Nave"),
+        processAndResolveData("films", "Filme"),
       ]);
-      
-      const resolvedPeople = await Promise.all(people.map(resolveReferences));
-      const resolvedPlanets = await Promise.all(planets.map(resolveReferences));
-      const resolvedStarships = await Promise.all(starships.map(resolveReferences));
-      const resolvedFilms = await Promise.all(films.map(resolveReferences));
 
-      allData = [
-        ...resolvedPeople.map(item => ({ ...item, type: "Pessoa" })),
-        ...resolvedPlanets.map(item => ({ ...item, type: "Planeta" })),
-        ...resolvedStarships.map(item => ({ ...item, type: "Nave" })),
-        ...resolvedFilms.map(item => ({ ...item, type: "Filme" })),
-      ];
+      allData = [...people, ...planets, ...starships, ...films];
   }
 
   return allData.sort((a, b) => {

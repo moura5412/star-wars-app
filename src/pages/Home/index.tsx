@@ -111,13 +111,16 @@ export default function Home() {
           <Spin size="large" />
         </div>
       ) : (
-        <Table
-          dataSource={filteredData}
-          columns={columns}
-          bordered
-          pagination={{ pageSize: 10 }}
-          rowKey="key"
-        />
+        <div className="table-container">
+          <Table
+            className="ant-table"
+            dataSource={filteredData}
+            columns={columns}
+            bordered
+            pagination={{ pageSize: 10 }}
+            rowKey="key"
+          />
+        </div>
       )}
       <Modal
         title="Detalhes"
